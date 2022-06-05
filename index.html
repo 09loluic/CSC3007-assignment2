@@ -169,9 +169,6 @@ var svg = d3.select("#my_dataviz")
 
 
           
-  var tip = d3.tip()
-  .attr('class', 'tooltip')
-  .html(d => '<div>${d.value}</div>');
 // X axis
 var x = d3.scaleBand()
   .range([ 0, width ])
@@ -203,9 +200,7 @@ svg.selectAll("mybar")
     .attr("width", x.bandwidth())
     .attr("height", function(d) { return height - y(d["value"]); })
     .attr("fill", "#69b3a2")
-    .on('mouseover', (d) => {
-      tip.show(d);
-    })
+   
 }
 
 </script>
