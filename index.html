@@ -10,53 +10,27 @@
 
 
 
-<div >
-<label for="yearDropDown" class="visually-hidden">Select Year: </label>
+<div style="text-align:center">
+<h3>
+  <label for="yearDropDown" class="visually-hidden">Select Year: </label>
 <select id="yearDropDown" name="Year" onchange="loadChart()"></select>
+
+</h2>
 </div>
 <div id="my_dataviz"></div>
-
+<div class="tooltip"> </div>
 </body>
 </html>
 
 <script>
-    d3.select("#hellos p").style("color", "red");
-    d3.selectAll("#hellos p").style("color", "blue");
 
     let OriginalData = [];
   
     let yearList = [];
-    
-// let data = [
-//     {cx: 400, cy: 600, r:150, fill: "green", stroke: "black"},
-//     {cx: 100, cy: 200, r:50, fill: "blue", stroke: "purple"},
-//     {cx: 650, cy: 100, r:100, fill: "red", stroke: "orange"}
-// ]
-// let hellos = d3.select("#hellos");
-// let xScale = d3.scaleLinear()
-//     .domain([0,1000])
-//     .range([0,600]);
-
-// let yScale = d3.scaleLinear()
-//     .domain([0,1000])
-//     .range([600,0]);
-// hellos.selectAll("p")
-// .data(data)
-// .enter()
-// .append("svg")
-// .attr("cx", d => d.cx)
-// .attr("cy", d => d.cy)
-// .attr("fill", d => d.fill)
-// .attr("stroke", d => d.stroke)
-// .style("font-size", d => d.size + "px")
-// .style("color", d=>d.color)
-// .style("font-family",d=>d.font)
-// .text(d => d.text)
-// .transition()
-// .duration((d,i) => {console.log(d,1); return 1000})
-
-// $(document).ready(function(){
-        
+    let HighestRate = 0;
+    function roundNearest100(num) {
+  return Math.round(num / 1000) * 1000;
+}  
 var data = {
   resource_id: '83c21090-bd19-4b54-ab6b-d999c251edcf', // the resource id
 };
@@ -69,14 +43,14 @@ data:data,
   success: function(datas) {
     
   OriginalData  = datas["result"]["records"];
-  console.log("Original Data: " + JSON.stringify(OriginalData)) ;
-
+ 
 var option = '';
 $.each(OriginalData, function(key,value) {
 
    if(jQuery.inArray(value["year"], yearList) == -1)
    {
       yearList.push(value["year"]);
+    
       option += '<option value="'+ value["year"] + '" >' + value["year"] + '</option>';
    }
        
@@ -84,48 +58,6 @@ $.each(OriginalData, function(key,value) {
 
 var dropdown = $("#yearDropDown");
 dropdown.append(option);
-// var barData = [];
-// var barChartData = [];
-
-// $.each(OriginalData, function(key,value) {
-
-
-//     if (!barData.hasOwnProperty("" +value["year"])){
-
-//         barData["" + value["year"]] = {};
-//     }
-    
-//     barData["" + value["year"]][value["level_2"]]  = value["value"];
-//     console.log("There are "  + value["value"] + " "+ value["level_2"]+" case in " +value["year"]);  
-       
-// }); 
-
-
-// $.each(barData, function(key,value) {
-
-// var  item = {}
-
-// item["year"] = key;
-// item["title"] = key;
-// if(barData.hasOwnProperty(key)){
-
-//     var subItem = new Array();
-//     $.each(barData[key], function(keys,values) {
-
-//     item[keys] = values; 
-//     subItem.push(keys);
-//   }
- 
-//   );
-// item["DataTitle"] = subItem;
-// console.log(barData[key]);
-// barChartData.push(item);
-// }
-
-// // barData["" + value["year"]][value["level_2"]]  = value["value"];
-// // console.log("There are "  + value["value"] + " "+ value["level_2"]+" case in " +value["year"]);  
-   
-// }); 
 
 loadChart();
    }
@@ -138,12 +70,17 @@ function filterData(){
 
   var year = $('#yearDropDown').val();
      var returnData = []  
+     HighestRate = 0;
      $.each(OriginalData, function(key,value) {
 
-      console.log("Year " + value["year"] + " Looking Year:" + year)
       if(value["year"]== year){
         // OriginalData[key]["value"] = (OriginalData[key]["value"]/10)
-      returnData.push(OriginalData[key]);
+        if(value["value"] > HighestRate){
+        HighestRate = parseInt(value["value"]);
+        console.log("Rate:" + value["value"])
+      }
+        returnData.push(OriginalData[key]);
+
       }
 
     })
@@ -154,9 +91,10 @@ function filterData(){
 function loadChart(){
   $("#my_dataviz").html("");
   var barChartData = filterData();
+   
   var margin = {top: 30, right: 30, bottom: 70, left: 60},
-  width = 460 - margin.left - margin.right,
-  height = 400 - margin.top - margin.bottom;
+  width = screen.width - margin.left - margin.right,
+  height = (screen.height *(3/4))- margin.top - margin.bottom;
 
 // append the svg object to the body of the page
 var svg = d3.select("#my_dataviz")
@@ -184,7 +122,7 @@ svg.append("g")
 
 // Add Y axis
 var y = d3.scaleLinear()
-  .domain([0, 1000])
+  .domain([0, HighestRate])
   .range([ height, 0]);
 
 svg.append("g")
@@ -200,6 +138,29 @@ svg.selectAll("mybar")
     .attr("width", x.bandwidth())
     .attr("height", function(d) { return height - y(d["value"]); })
     .attr("fill", "#69b3a2")
+    .on("mouseover", (event, d) => {
+
+
+d3.select(".tooltip")
+.html("Crime: " + d["level_2"]+"<br> Value: " + d["value"])
+.style("position", "absolute")
+.style("background", "#fff")
+.style("left", (event.pageX) + "px")
+.style("top", (event.pageY) + "px");        
+
+d3.select(event.currentTarget)
+.classed("selected", true);
+
+
+})
+.on("mouseout", (event, d) => {
+    d3.select(".tooltip")
+    .html("");
+
+    d3.select(event.currentTarget)
+        .classed("selected",false);
+})
+
    
 }
 
